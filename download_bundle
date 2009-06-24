@@ -14,7 +14,7 @@ output.puts "Done"
 num_retries = CONFIG['num_retries']
 time_between_tries = CONFIG['time_between_tries']
 app_name = CONFIG['app_name']
-file_name = File.join(File.dirname(__FILE__), "#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{app_name}.tar.gz")
+file_name = File.join(File.dirname(__FILE__), "#{app_name}_#{Time.now.strftime('%Y%m%d_%H%M%S')}.tar.gz")
 
 credentials_file = "#{ENV['HOME']}/.heroku/credentials"
 
