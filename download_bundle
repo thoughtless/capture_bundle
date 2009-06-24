@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'heroku'
+
+output = STDOUT
+
+output.print "Reading config file..."
+config_file = File.join(File.dirname(__FILE__), "config.yml")
+raw_config = File.read(config_file)
+CONFIG = YAML.load(raw_config)
+output.puts "Done"
+
+num_retries = CONFIG['num_retries']
+time_between_tries = CONFIG['time_between_tries']
+app_name = CONFIG['app_name']
+file_name = File.join(File.dirname(__FILE__), "#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{app_name}.tar.gz")
+
+credentials_file = "#{ENV['HOME']}/.heroku/credentials"
+
+if File.exists? credentials_file
+  credentials = File.read(credentials_file).split("\n")
+else
+  # TODO: Use a proper error class, not a generic one.
+  raise "You must have your Heroku credentials saved to #{credentials_file}"
+end
+
+heroku = Heroku::Client.new(*credentials)
+
+
+
+# Destroy all existing bundles.
+# This is necessary because I am only allowed 1 bundle at a time.
+output.print "Destroying all existing bundles..."
+heroku.bundles(app_name).each do |bundle|
+  heroku.bundle_destroy(app_name, bundle[:name])
+  output.print '.'
+end
+output.puts "Done"
+
+output.puts "Issuing capture command"
+bundle_name = heroku.bundle_capture(app_name)
+
+bundle = nil
+
+cnt = 0
+
+while bundle.nil? || bundle[:state] != 'complete'
+  if cnt >= num_retries
+    # TODO: Use a proper error class, not a generic one.
+    raise "Bundle did not complete capture within #{num_retries} tries"
+  end
+  sleep time_between_tries
+  output.puts "Checking if caputure complete. Try number: #{cnt + 1}"
+  bundle = heroku.bundles(app_name).detect{|bundle| bundle[:name] == bundle_name}
+  cnt += 1
+end
+
+output.puts "Capture complete. Starting download."
+heroku.bundle_download(app_name, file_name, bundle_name)
+output.puts "Done. Bundle saved to #{file_name}"
+

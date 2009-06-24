@@ -1,0 +1,3 @@
+app_name:           your_app_name
+num_retries:        5
+time_between_tries: 30
