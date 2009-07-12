@@ -2,6 +2,7 @@
 
 require 'rubygems'
 require 'heroku'
+require 'fileutils'
 
 output = STDOUT
 
@@ -15,6 +16,8 @@ num_retries = CONFIG['num_retries']
 time_between_tries = CONFIG['time_between_tries']
 app_name = CONFIG['app_name']
 file_name = File.join(File.dirname(__FILE__), "#{app_name}_#{Time.now.strftime('%Y%m%d_%H%M%S')}.tar.gz")
+output_dir = CONFIG['output_dir'] || '.'
+output_file_name = "#{output_dir}/#{file_name}"
 
 credentials_file = "#{ENV['HOME']}/.heroku/credentials"
 
@@ -58,5 +61,8 @@ end
 
 output.puts "Capture complete. Starting download."
 heroku.bundle_download(app_name, file_name, bundle_name)
-output.puts "Done. Bundle saved to #{file_name}"
+unless File.dirname(File.expand_path(file_name)) == File.dirname(File.expand_path(output_file_name)) # Same directory. The file doesn't need to be moved.
+  FileUtils.cp(file_name, output_file_name)
+end
+output.puts "Done. Bundle saved to #{output_file_name}"
 
